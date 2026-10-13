@@ -89,13 +89,13 @@ $$
 |\psi\rangle=\alpha|0\rangle+\beta|1\rangle
 $$
 
-Here, \(\alpha\) and \(\beta\) are complex probability amplitudes, and their squared magnitudes satisfy:
+Here, $\alpha$ and $\beta$ are complex probability amplitudes, and their squared magnitudes satisfy:
 
 $$
 |\alpha|^2+|\beta|^2=1
 $$
 
-When the qubit is measured in the computational basis, the probability of observing `0` is \(|\alpha|^2\), and the probability of observing `1` is \(|\beta|^2\).
+When the qubit is measured in the computational basis, the probability of observing `0` is $|\alpha|^2$, and the probability of observing `1` is $|\beta|^2$.
 
 A qubit can therefore be in a superposition of the two basis states before measurement. This is not simply a classical bit that is secretly either zero or one; the amplitudes also determine how quantum operations interfere.
 
@@ -117,7 +117,7 @@ This process is called **data encoding** or **feature embedding**.
 
 Our implementation uses rotation gates around the Y axis, written as `RY(θ)`.
 
-A rotation gate changes a qubit's state according to an angle, \(\theta\). For a qubit initially in state \(|0\rangle\), an RY rotation produces:
+A rotation gate changes a qubit's state according to an angle, $\theta$. For a qubit initially in state $|0\rangle$, an RY rotation produces:
 
 $$
 RY(\theta)|0\rangle =
@@ -199,10 +199,10 @@ Its action on computational-basis states is:
 
 | Input | Output |
 |---|---|
-| \(|00\rangle\) | \(|00\rangle\) |
-| \(|01\rangle\) | \(|01\rangle\) |
-| \(|10\rangle\) | \(|11\rangle\) |
-| \(|11\rangle\) | \(|10\rangle\) |
+| $|00\rangle$ | $|00\rangle$ |
+| $|01\rangle$ | $|01\rangle$ |
+| $|10\rangle$ | $|11\rangle$ |
+| $|11\rangle$ | $|10\rangle$ |
 
 These examples describe the gate's action on basis states. For general superpositions, quantum mechanics applies the operation to the amplitudes as well.
 
@@ -222,7 +222,7 @@ Our circuit uses CNOT gates in a simple entangling pattern. This is a design cho
 
 Entanglement is a quantum property in which the joint state of multiple qubits cannot be described as a product of independent states for the individual qubits.
 
-Consider two qubits initially in state \(|00\rangle\).
+Consider two qubits initially in state $|00\rangle$.
 
 First, apply a Hadamard gate to the first qubit. This creates a superposition:
 
@@ -266,8 +266,8 @@ Z=\begin{pmatrix}1&0\\0&-1\end{pmatrix}
 
 For computational-basis measurement:
 
-- Outcome \(|0\rangle\) corresponds to \(+1\).
-- Outcome \(|1\rangle\) corresponds to \(-1\).
+- Outcome $|0\rangle$ corresponds to $+1$.
+- Outcome $|1\rangle$ corresponds to $-1$.
 
 A single measurement produces only one outcome. Repeated measurements allow us to estimate the average value, called the **expectation value**.
 
@@ -277,7 +277,7 @@ $$
 \langle Z\rangle=P(0)-P(1)
 \]
 
-Because the two probabilities sum to one, the expectation value lies between \(-1\) and \(+1\).
+Because the two probabilities sum to one, the expectation value lies between $-1$ and $+1$.
 
 ### A simple example
 
@@ -289,7 +289,7 @@ $$
 \langle Z\rangle=0.75-0.25=0.50
 \]
 
-If the probabilities were reversed, the expectation value would be \(-0.50\).
+If the probabilities were reversed, the expectation value would be $-0.50$.
 
 The expectation value therefore gives us a numerical summary of the measurement distribution.
 
@@ -323,10 +323,10 @@ $$
 
 Here:
 
-- \(z_1,\ldots,z_4\) are the measured expectation values.
-- \(w_1,\ldots,w_4\) are classical weights.
-- \(b\) is a bias term.
-- \(\hat{y}\) is the predicted traffic volume.
+- $z_1,\ldots,z_4$ are the measured expectation values.
+- $w_1,\ldots,w_4$ are classical weights.
+- $b$ is a bias term.
+- $\hat{y}$ is the predicted traffic volume.
 
 The classical output layer turns the circuit's measurements into a value expressed in the scale of the target variable.
 
@@ -358,7 +358,7 @@ $$
 L=(y-\hat{y})^2
 \]
 
-where \(y\) is the actual traffic volume and \(\hat{y}\) is the prediction.
+where $y$ is the actual traffic volume and $\hat{y}$ is the prediction.
 
 Training aims to reduce the average loss over the training examples.
 
