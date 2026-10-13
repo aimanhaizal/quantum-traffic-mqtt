@@ -1,0 +1,18 @@
+# Quantum circuit and Amazon Braket local simulator
+PennyLane==0.42.3
+amazon-braket-pennylane-plugin==1.33.7
+amazon-braket-sdk==1.110.1
+cloudpickle==2.2.1
+
+# Numerical computation and machine learning
+numpy==2.2.6
+pandas==2.3.3
+scikit-learn==1.7.2
+joblib==1.4.2
+
+# MQTT communication and web dashboard
+paho-mqtt==2.1.0
+Flask==3.1.3
+
+# Optional: useful for local experiments and plotting
+matplotlib==3.10.9
