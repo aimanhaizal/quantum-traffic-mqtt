@@ -199,10 +199,10 @@ Its action on computational-basis states is:
 
 | Input | Output |
 |---|---|
-| $|00\rangle$ | $|00\rangle$ |
-| $|01\rangle$ | $|01\rangle$ |
-| $|10\rangle$ | $|11\rangle$ |
-| $|11\rangle$ | $|10\rangle$ |
+| $\mid 00\rangle$ | $\mid 00\rangle$ |
+| $\mid 01\rangle$ | $\mid 01\rangle$ |
+| $\mid 10\rangle$ | $\mid 11\rangle$ |
+| $\mid 11\rangle$ | $\mid 10\rangle$ |
 
 These examples describe the gate's action on basis states. For general superpositions, quantum mechanics applies the operation to the amplitudes as well.
 
@@ -261,7 +261,7 @@ This is the purpose of measurement.
 Our model measures the Pauli-Z observable on each qubit. The Pauli-Z operator is represented by:
 
 $$
-Z=\begin{pmatrix}1&0\\0&-1\end{pmatrix}
+Z = \begin{pmatrix} 1 & 0 <br> 0 & -1 \end{pmatrix}
 $$
 
 For computational-basis measurement:
