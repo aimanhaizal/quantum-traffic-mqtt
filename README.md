@@ -12,8 +12,6 @@ The project replays historical traffic data, publishes each record through MQTT,
 
 *The dashboard displays recent traffic predictions, actual traffic volume, and quantum inference runtime.*
 
-To add the screenshot, create a `screenshots` directory and save a screenshot of the working dashboard as `quantum-dashboard.png`.
-
 ## Features
 
 - **Quantum machine learning:** A small hybrid quantum-classical regressor implemented with PennyLane.
