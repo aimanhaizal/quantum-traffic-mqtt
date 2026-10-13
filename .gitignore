@@ -2,3 +2,7 @@
 __pycache__/
 *.py[cod]
 .env
+
+TrafficVolumeData.csv
+quantum_results.csv
+quantum_model_params.npz

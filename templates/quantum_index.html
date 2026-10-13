@@ -1,0 +1,259 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quantum Traffic Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: Arial, sans-serif;
+            background: #f3f5f8;
+            color: #202938;
+        }
+        main { max-width: 1200px; margin: auto; }
+        h1 { margin-bottom: 6px; }
+        .subtitle { color: #657184; margin-top: 0; }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 14px;
+            margin: 22px 0;
+        }
+        .card, .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 2px 8px #1720330c;
+        }
+        .metric { font-size: 28px; font-weight: bold; margin-top: 10px; }
+        .label { color: #657184; font-size: 14px; }
+        .charts {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+        .chart-container { height: 310px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e8ebf0;
+            white-space: nowrap;
+        }
+        th { color: #657184; font-size: 13px; }
+        .status { color: #18864b; font-size: 14px; }
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .chart-container { height: 260px; }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Quantum Traffic Monitor</h1>
+    <p class="subtitle">
+        Hybrid quantum-classical traffic prediction using the
+        Amazon Braket local simulator.
+    </p>
+    <p class="status" id="status">Connecting to dashboard data...</p>
+
+    <section class="cards">
+        <div class="card">
+            <!-- <div class="label">Messages received (recent window)</div> -->
+            <div class="label">Total messages received</div>
+            <div class="metric" id="count">0</div>
+        </div>
+        <div class="card">
+            <div class="label">Average inference runtime</div>
+            <div class="metric" id="average">—</div>
+        </div>
+        <div class="card">
+            <div class="label">Median inference runtime</div>
+            <div class="metric" id="median">—</div>
+        </div>
+        <div class="card">
+            <div class="label">Maximum inference runtime</div>
+            <div class="metric" id="maximum">—</div>
+        </div>
+    </section>
+
+    <section class="charts">
+        <div class="panel">
+            <h2>Actual vs Predicted Traffic</h2>
+            <div class="chart-container">
+                <canvas id="trafficChart"></canvas>
+            </div>
+        </div>
+        <div class="panel">
+            <h2>Quantum Inference Runtime per Message</h2>
+            <div class="chart-container">
+                <canvas id="runtimeChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px">
+        <h2>Latest Messages</h2>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Actual</th>
+                        <th>Predicted</th>
+                        <th>Inference (ms)</th>
+                    </tr>
+                </thead>
+                <tbody id="messageRows">
+                    <tr><td colspan="4">Waiting for MQTT messages...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script>
+    const trafficChart = new Chart(
+        document.getElementById("trafficChart"),
+        {
+            type: "line",
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: "Actual traffic",
+                        data: [],
+                        borderColor: "#2563eb",
+                        tension: 0.2,
+                        pointRadius: 2
+                    },
+                    {
+                        label: "Predicted traffic",
+                        data: [],
+                        borderColor: "#dc7c24",
+                        tension: 0.2,
+                        pointRadius: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: {
+                    y: { beginAtZero: true, title: {
+                        display: true, text: "Vehicles"
+                    }}
+                }
+            }
+        }
+    );
+
+    const runtimeChart = new Chart(
+        document.getElementById("runtimeChart"),
+        {
+            type: "line",
+            data: {
+                labels: [],
+                datasets: [{
+                    label: "Inference runtime (ms)",
+                    data: [],
+                    borderColor: "#7c3aed",
+                    backgroundColor: "#7c3aed22",
+                    fill: true,
+                    tension: 0.15,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: {
+                    y: { beginAtZero: true, title: {
+                        display: true, text: "Milliseconds"
+                    }}
+                }
+            }
+        }
+    );
+
+    async function refreshDashboard() {
+        try {
+            const response = await fetch("/api/data", { cache: "no-store" });
+            if (!response.ok) throw new Error("HTTP " + response.status);
+
+            const data = await response.json();
+            const rows = data.records;
+            const labels = rows.map((r, i) => {
+                const date = new Date(r.date_time.replace(" ", "T"));
+                return Number.isNaN(date.getTime())
+                    ? String(i + 1)
+                    : date.toLocaleString();
+            });
+
+            document.getElementById("count").textContent = data.count;
+            document.getElementById("average").textContent =
+                data.count ? data.average_runtime_ms + " ms" : "—";
+            document.getElementById("median").textContent =
+                data.count ? data.median_runtime_ms + " ms" : "—";
+            document.getElementById("maximum").textContent =
+                data.count ? data.max_runtime_ms + " ms" : "—";
+
+            trafficChart.data.labels = labels;
+            trafficChart.data.datasets[0].data =
+                rows.map(r => r.actual);
+            trafficChart.data.datasets[1].data =
+                rows.map(r => r.predicted);
+            trafficChart.update();
+
+            runtimeChart.data.labels = labels;
+            runtimeChart.data.datasets[0].data =
+                rows.map(r => r.inference_ms);
+            runtimeChart.update();
+
+            const tbody = document.getElementById("messageRows");
+            tbody.replaceChildren();
+
+            rows.slice().reverse().slice(0, 10).forEach(r => {
+                const tr = document.createElement("tr");
+                [
+                    r.date_time,
+                    r.actual == null ? "—" : Math.round(r.actual),
+                    Math.round(r.predicted),
+                    r.inference_ms.toFixed(2)
+                ].forEach(value => {
+                    const td = document.createElement("td");
+                    td.textContent = value;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+
+            if (rows.length === 0) {
+                const tr = document.createElement("tr");
+                const td = document.createElement("td");
+                td.colSpan = 4;
+                td.textContent = "Waiting for MQTT messages...";
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+            }
+
+            document.getElementById("status").textContent =
+                "Dashboard connected • Refreshing every second";
+        } catch (error) {
+            document.getElementById("status").textContent =
+                "Unable to load dashboard data: " + error.message;
+        }
+    }
+
+    refreshDashboard();
+    setInterval(refreshDashboard, 1000);
+</script>
+</body>
+</html>
