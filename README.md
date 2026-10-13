@@ -243,4 +243,4 @@ This is a prototype for demonstrating the integration of quantum machine learnin
 
 ## License
 
-The code's license should be specified in the repository. The Kaggle dataset is a separate work and remains subject to the terms provided by its source.
+This repository's code is released under the **MIT License**. See [`LICENSE`](LICENSE). The Kaggle dataset is a separate work; refer to its source page for applicable terms.
