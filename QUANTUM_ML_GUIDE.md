@@ -85,15 +85,15 @@ A classical computer stores information in bits. A bit has a value of either `0`
 
 A qubit, or quantum bit, is the basic unit of quantum information. Its state can be written as a combination of two computational-basis states:
 
-\[
+$$
 |\psi\rangle=\alpha|0\rangle+\beta|1\rangle
-\]
+$$
 
 Here, \(\alpha\) and \(\beta\) are complex probability amplitudes, and their squared magnitudes satisfy:
 
-\[
+$$
 |\alpha|^2+|\beta|^2=1
-\]
+$$
 
 When the qubit is measured in the computational basis, the probability of observing `0` is \(|\alpha|^2\), and the probability of observing `1` is \(|\beta|^2\).
 
@@ -119,7 +119,7 @@ Our implementation uses rotation gates around the Y axis, written as `RY(θ)`.
 
 A rotation gate changes a qubit's state according to an angle, \(\theta\). For a qubit initially in state \(|0\rangle\), an RY rotation produces:
 
-\[
+$$
 RY(\theta)|0\rangle =
 \cos\left(\frac{\theta}{2}\right)|0\rangle+
 \sin\left(\frac{\theta}{2}\right)|1\rangle
@@ -226,13 +226,13 @@ Consider two qubits initially in state \(|00\rangle\).
 
 First, apply a Hadamard gate to the first qubit. This creates a superposition:
 
-\[
+$$
 \frac{|00\rangle+|10\rangle}{\sqrt{2}}
 \]
 
 Next, apply a CNOT with the first qubit as the control and the second as the target:
 
-\[
+$$
 \frac{|00\rangle+|11\rangle}{\sqrt{2}}
 \]
 
@@ -260,7 +260,7 @@ This is the purpose of measurement.
 
 Our model measures the Pauli-Z observable on each qubit. The Pauli-Z operator is represented by:
 
-\[
+$$
 Z=\begin{pmatrix}1&0\\0&-1\end{pmatrix}
 \]
 
@@ -273,7 +273,7 @@ A single measurement produces only one outcome. Repeated measurements allow us t
 
 For Pauli-Z:
 
-\[
+$$
 \langle Z\rangle=P(0)-P(1)
 \]
 
@@ -285,7 +285,7 @@ Suppose repeated measurements produce `0` about 75% of the time and `1` about 25
 
 The expected Pauli-Z value is:
 
-\[
+$$
 \langle Z\rangle=0.75-0.25=0.50
 \]
 
@@ -317,7 +317,7 @@ The quantum circuit produces four Pauli-Z expectation values. The model then pas
 
 Conceptually, the final prediction has the form:
 
-\[
+$$
 \hat{y}=w_1z_1+w_2z_2+w_3z_3+w_4z_4+b
 \]
 
@@ -354,7 +354,7 @@ The loss function measures prediction error. This project uses mean squared erro
 
 For a single prediction, the squared error is:
 
-\[
+$$
 L=(y-\hat{y})^2
 \]
 
