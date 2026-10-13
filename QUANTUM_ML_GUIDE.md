@@ -123,7 +123,7 @@ $$
 RY(\theta)|0\rangle =
 \cos\left(\frac{\theta}{2}\right)|0\rangle+
 \sin\left(\frac{\theta}{2}\right)|1\rangle
-\]
+$$
 
 The rotation angle changes the amplitudes of the resulting state.
 
@@ -228,13 +228,13 @@ First, apply a Hadamard gate to the first qubit. This creates a superposition:
 
 $$
 \frac{|00\rangle+|10\rangle}{\sqrt{2}}
-\]
+$$
 
 Next, apply a CNOT with the first qubit as the control and the second as the target:
 
 $$
 \frac{|00\rangle+|11\rangle}{\sqrt{2}}
-\]
+$$
 
 This final state is entangled. The two qubits cannot be represented as two independent single-qubit states.
 
@@ -262,7 +262,7 @@ Our model measures the Pauli-Z observable on each qubit. The Pauli-Z operator is
 
 $$
 Z=\begin{pmatrix}1&0\\0&-1\end{pmatrix}
-\]
+$$
 
 For computational-basis measurement:
 
@@ -275,7 +275,7 @@ For Pauli-Z:
 
 $$
 \langle Z\rangle=P(0)-P(1)
-\]
+$$
 
 Because the two probabilities sum to one, the expectation value lies between $-1$ and $+1$.
 
@@ -287,7 +287,7 @@ The expected Pauli-Z value is:
 
 $$
 \langle Z\rangle=0.75-0.25=0.50
-\]
+$$
 
 If the probabilities were reversed, the expectation value would be $-0.50$.
 
@@ -319,7 +319,7 @@ Conceptually, the final prediction has the form:
 
 $$
 \hat{y}=w_1z_1+w_2z_2+w_3z_3+w_4z_4+b
-\]
+$$
 
 Here:
 
@@ -356,7 +356,7 @@ For a single prediction, the squared error is:
 
 $$
 L=(y-\hat{y})^2
-\]
+$$
 
 where $y$ is the actual traffic volume and $\hat{y}$ is the prediction.
 
