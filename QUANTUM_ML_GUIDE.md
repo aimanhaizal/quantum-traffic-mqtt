@@ -261,7 +261,7 @@ This is the purpose of measurement.
 Our model measures the Pauli-Z observable on each qubit. The Pauli-Z operator is represented by:
 
 $$
-Z = \begin{pmatrix} 1 & 0 <br> 0 & -1 \end{pmatrix}
+Z = \begin{pmatrix} 1 & 0 \\\\ 0 & -1 \end{pmatrix}
 $$
 
 For computational-basis measurement:
