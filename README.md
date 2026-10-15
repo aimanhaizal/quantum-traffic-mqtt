@@ -56,6 +56,28 @@ Traffic predictions + timings
 
 The model is trained separately before the MQTT demonstration. Its learned parameters are saved locally and loaded by the inference module when the receiver starts.
 
+## Turning it on
+
+Hosted in machine 10.1.32.1
+
+Turning on mosquitto
+```bash
+docker start eclipse-mosquitto
+```
+Start receiver
+```bash
+cd /home/work/quantum-traffic-mqtt
+source .venv/bin/activate
+```
+Open Dashboard at http://localhost:5119/ or http://10.1.32.1:5119/ if on ssh
+
+Start sender
+```bash
+cd /home/work/quantum-traffic-mqtt
+source .venv/bin/activate
+python quantum_sender.py
+```
+
 ## Technology stack
 
 - Python
