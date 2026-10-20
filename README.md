@@ -64,19 +64,24 @@ Turning on mosquitto
 ```bash
 docker start mosquitto
 ```
-Start receiver
+
+Open **TWO** separate terminal windows and run the following commands:
+
+### Terminal 1. Start the Receiver
 ```bash
 cd /home/work/quantum-traffic-mqtt
 source .venv/bin/activate
+python quantum_receiver.py
 ```
-Open Dashboard at http://localhost:5119/ or http://10.1.32.1:5119/ if on ssh
+### Terminal 2. Start the Sender
 
-Start sender
 ```bash
 cd /home/work/quantum-traffic-mqtt
 source .venv/bin/activate
 python quantum_sender.py
 ```
+
+Open Dashboard at http://localhost:5119/ or http://10.1.32.1:5119/ if on ssh
 
 ## Technology stack
 
