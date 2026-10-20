@@ -62,7 +62,7 @@ Hosted in machine 10.1.32.1
 
 Turning on mosquitto
 ```bash
-docker start eclipse-mosquitto
+docker start mosquitto
 ```
 Start receiver
 ```bash
