@@ -132,8 +132,8 @@ After the circuit's quantum operations, the model measures Pauli-Z expectation v
 
 For an individual qubit, the Pauli-Z observable assigns:
 
-- \(+1\) to the computational basis state \(|0\rangle\)
-- \(-1\) to the computational basis state \(|1\rangle\)
+- $+1$ to the computational basis state $|0\rangle$
+- $-1$ to the computational basis state $|1\rangle$
 
 The expectation value is the average observable value implied by the quantum measurement distribution. With finite-shot sampling, the simulator estimates it from measurement outcomes.
 
@@ -145,11 +145,11 @@ A classical linear output layer combines the quantum measurement values using le
 
 Conceptually, the output has the form:
 
-\[
+$$
 \hat{y} = \sum_i w_i z_i + b
-\]
+$$
 
-Here, \(z_i\) represents a quantum measurement value, \(w_i\) is a learned classical weight, and \(b\) is a bias. The result \(\hat{y}\) is the predicted traffic volume.
+Here, $z_i$ represents a quantum measurement value, $w_i$ is a learned classical weight, and $b$ is a bias. The result $\hat{y}$ is the predicted traffic volume.
 
 This is why the project is called **hybrid quantum-classical machine learning**: quantum operations produce intermediate features, while classical computation helps turn those features into the final prediction.
 
