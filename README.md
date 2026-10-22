@@ -61,6 +61,13 @@ The project uses four qubits. Each qubit is a quantum computing unit whose state
 
 The quantum circuit does not directly output a traffic-volume number. Instead, it produces measurement values that the classical part of the model uses to calculate the final prediction.
 
+| Code file on GitHub | What it uses quantum computing for |
+|---|---|
+| `quantum_model.py` | Training the hybrid model. Runs the quantum circuit during training and adjusts trainable parameters so the model can learn to predict traffic volume. Saves the trained parameters for later use. |
+| `quantum_inference.py` | Running the quantum prediction circuit. Encodes traffic and weather features into four qubits, applies quantum gates, measures the qubits, and passes the measurement values to a classical output layer to calculate the predicted traffic volume. |
+| `quantum_circuit_test.py` | Testing the quantum circuit. Used to experiment with or verify circuit behaviour, rather than serving as the main application prediction pipeline. |
+
+
 ## 4. Inside the hybrid quantum-classical model
 
 This second diagram zooms in on the machine learning process.
