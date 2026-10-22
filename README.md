@@ -1,128 +1,188 @@
 # Quantum Traffic Prediction with MQTT
 
-A prototype demonstrating how a small **hybrid quantum-classical machine learning model** can be integrated into an MQTT data pipeline and monitored through a live web dashboard.
+A demonstration of **hybrid quantum-classical machine learning** for traffic-volume prediction.
 
-The project replays historical traffic data, publishes each record through MQTT, runs a quantum circuit on Amazon Braket's **local simulator**, and displays predicted versus actual traffic volume alongside inference timings.
+This project shows how historical traffic data can be sent through an MQTT pipeline, processed by a quantum machine learning circuit running on a local simulator, and displayed on a live dashboard.
 
-> **No paid AWS quantum device is used.** Model training and inference run locally using the Braket local simulator.
+The key question this project demonstrates is:
 
-## Dashboard
+> **How can a quantum circuit become part of a machine learning model that predicts traffic volume from weather and time-related data?**
+
+**Important:** This is a research and educational prototype. The quantum circuit runs on Amazon Braket's local simulator. It does not use a paid quantum computer or demonstrate quantum advantage over classical machine learning.
+
+## 1. What does the visitor see?
 
 ![Quantum Traffic MQTT Dashboard](screenshots/quantum-dashboard.png)
 
-*The dashboard displays recent traffic predictions, actual traffic volume, and quantum inference runtime.*
+The dashboard displays actual and predicted traffic volumes, inference timings, and recent messages received by the system.
 
-## Features
+During the demonstration, the sender replays historical traffic records. Each record travels through MQTT to the receiver, which uses the trained hybrid model to generate a prediction.
 
-- **Quantum machine learning:** A small hybrid quantum-classical regressor implemented with PennyLane.
-- **Amazon Braket local simulator:** Executes the quantum circuit locally without submitting jobs to a paid quantum device.
-- **MQTT data pipeline:** Publishes historical traffic records to the `traffic/data` topic.
-- **Live Flask dashboard:** Displays recent actual and predicted traffic values.
-- **Inference monitoring:** Records quantum inference time and total receiver processing time.
-- **Experiment logging:** Saves processed prediction records to `quantum_results.csv`.
-- **Dataset replay:** Replays valid rows from the traffic dataset at a configurable interval.
+The dashboard then displays the prediction alongside the known traffic volume in that historical record.
 
-## Architecture
+This is a replay of historical data, not a connection to a live traffic sensor.
 
-```text
-TrafficVolumeData.csv
-        |
-        v
-quantum_sender.py
-        |
-        v
-   MQTT Broker
-   traffic/data
-        |
-        v
-quantum_receiver.py
-        |
-        +----------------------+
-        |                      |
-        v                      v
-quantum_inference.py     quantum_results.csv
-        |
-        v
-PennyLane + Braket
-Local quantum simulator
-        |
-        v
-Hybrid classical output layer
-        |
-        v
-Flask Dashboard
-Traffic predictions + timings
+## 2. System architecture: from traffic data to dashboard
+
+This diagram shows the complete journey of a traffic record through the application.
+
+```mermaid
+flowchart TD
+    A["Historical traffic dataset<br/>TrafficVolumeData.csv"]
+    B["Quantum Sender<br/>quantum_sender.py"]
+    C["MQTT Broker<br/>Topic: traffic/data"]
+    D["Quantum Receiver<br/>quantum_receiver.py"]
+    E["Feature Extraction<br/>Hour, humidity,<br/>temperature, cloud coverage"]
+    F["Quantum Inference<br/>quantum_inference.py"]
+    G["PennyLane + Amazon Braket<br/>Local quantum simulator"]
+    H["Classical Output Layer<br/>Combines measured values"]
+    I["Predicted Traffic Volume"]
+    J["Compare with actual volume<br/>and record timing"]
+    K["Results Log<br/>quantum_results.csv"]
+    L["Flask Web Dashboard<br/>Port 5119"]
+
+    A --> B --> C --> D --> E --> F
+    F --> G --> H --> I --> J
+    J --> K
+    J --> L
 ```
 
-The model is trained separately before the MQTT demonstration. Its learned parameters are saved locally and loaded by the inference module when the receiver starts.
+The model is trained separately before the demonstration. The trained parameters are saved to `quantum_model_params.npz` and loaded by the inference module when the receiver starts.
 
-## Turning it on
+**The important point:** MQTT transports the data, the quantum circuit processes the encoded features, the classical output layer turns the circuit's measurements into a prediction, and the dashboard presents the result.
 
-Hosted in machine 10.1.32.1
+## 3. Where exactly is quantum computing used?
 
-Turning on mosquitto
-```bash
-docker start mosquitto
+Quantum computing is used inside the **prediction stage**, specifically when the model executes its parameterized quantum circuit.
+
+It is not used by MQTT, the Flask dashboard, or the CSV replay mechanism.
+
+The project uses four qubits. Each qubit is a quantum computing unit whose state can be manipulated by quantum gates and measured to obtain information used by the model.
+
+The quantum circuit does not directly output a traffic-volume number. Instead, it produces measurement values that the classical part of the model uses to calculate the final prediction.
+
+## 4. Inside the hybrid quantum-classical model
+
+This second diagram zooms in on the machine learning process.
+
+```mermaid
+flowchart TD
+    A["Historical traffic record"]
+    B["Select 4 input features<br/>Hour, humidity, temperature,<br/>cloud coverage"]
+    C["Encode features<br/>RY rotation gates"]
+    D["Trainable quantum gates<br/>Adjustable circuit parameters"]
+    E["CNOT gates<br/>Connect qubits and enable entanglement"]
+    F["Measure qubits<br/>Pauli-Z expectation values"]
+    G["Classical output layer<br/>Weighted combination of measurements"]
+    H["Predicted traffic volume"]
+    I["Calculate prediction error<br/>against known traffic volume"]
+    J["Update trainable parameters"]
+    K["Save trained model parameters"]
+
+    A --> B --> C --> D --> E --> F --> G --> H
+    H --> I --> J
+    J --> D
+    J --> K
 ```
 
-Open **TWO** separate terminal windows and run the following commands:
+*During training, the model adjusts its parameters to reduce prediction error. During inference, it uses the learned parameters to make predictions without repeating the training process.*
 
-### Terminal 1. Start the Receiver
-```bash
-cd /home/work/quantum-traffic-mqtt
-source .venv/bin/activate
-python quantum_receiver.py
-```
-### Terminal 2. Start the Sender
+### Step 1 — Prepare the input data
 
-```bash
-cd /home/work/quantum-traffic-mqtt
-source .venv/bin/activate
-python quantum_sender.py
-```
+The model uses four features from each traffic record:
 
-Open Dashboard at http://localhost:5119/ or http://10.1.32.1:5119/ if on ssh
+| Feature | What it represents |
+|---|---|
+| Hour | Hour of the day derived from `date_time` |
+| Humidity | Recorded humidity |
+| Temperature | Recorded temperature |
+| Cloud coverage | The `clouds_all` value |
 
-## Technology stack
+The target is `traffic_volume`, the traffic volume the model is learning to predict.
 
-- Python
-- PennyLane
-- Amazon Braket SDK and PennyLane plugin
-- NumPy, pandas, and scikit-learn utilities
-- Paho MQTT
-- Flask
-- Chart.js
+### Step 2 — Encode the features into qubits
 
-## Dataset
+A classical computer represents these features as numerical values. The quantum circuit then uses **RY rotation gates** to encode the input values into the states of four qubits.
 
-This project uses the [TrafficVolumeDataCSV dataset on Kaggle](https://www.kaggle.com/datasets/bobaaayoung/trafficvolumedatacsv/data).
+An RY gate rotates a qubit's state around the Y axis of the Bloch sphere. The rotation angle controls the resulting quantum state.
 
-The dataset contains historical traffic volume observations alongside weather and environmental information.
+In this prototype, the encoding connects the input data to the quantum circuit. It does not mean the data is automatically made more informative or that quantum encoding guarantees better predictions.
 
-Download the CSV and place it in the repository root as:
+### Step 3 — Apply trainable quantum gates
 
-```text
-TrafficVolumeData.csv
-```
+The circuit applies trainable rotation operations whose parameters are adjusted during model training.
 
-The dataset is not included in this repository. Please consult its source page for applicable terms.
+These parameters influence the quantum states and therefore influence the results obtained when the qubits are measured.
 
-## Model overview
+The training process searches for parameter values that help the overall model predict traffic volume more accurately.
 
-The prototype predicts `traffic_volume` using four input features:
+### Step 4 — Connect qubits using CNOT gates
 
-- Hour of the day, derived from `date_time`
-- Humidity
-- Temperature
-- Cloud coverage (`clouds_all`)
+CNOT is a controlled-NOT quantum gate. It acts on a pair of qubits, applying a NOT operation to the target qubit when the control qubit is in the appropriate computational-basis state.
 
-The quantum circuit uses four qubits, rotation gates to encode inputs and trainable parameters, and CNOT gates to introduce entanglement. Pauli-Z expectation values from the circuit feed a classical linear output layer to produce a traffic-volume prediction.
+Within the circuit, CNOT gates allow interactions between qubits and can create entanglement.
 
-This is a small experimental model intended to demonstrate a quantum machine learning workflow. Its results should not be interpreted as evidence that quantum machine learning outperforms classical methods or is ready for operational traffic forecasting.
+Entanglement is a specifically quantum correlation between parts of a quantum state. In this model, the gates provide a way for the circuit to represent relationships among its qubits.
 
-## Training results
+Their presence alone does not prove that the model performs better than a classical alternative.
 
-In the development run, the model was trained for five epochs using a limited subset of the dataset.
+### Step 5 — Measure the qubits
+
+After the circuit's quantum operations, the model measures Pauli-Z expectation values.
+
+For an individual qubit, the Pauli-Z observable assigns:
+
+- \(+1\) to the computational basis state \(|0\rangle\)
+- \(-1\) to the computational basis state \(|1\rangle\)
+
+The expectation value is the average observable value implied by the quantum measurement distribution. With finite-shot sampling, the simulator estimates it from measurement outcomes.
+
+The resulting values are numerical features produced by the quantum circuit. They are not yet the traffic-volume prediction.
+
+### Step 6 — Calculate the final prediction classically
+
+A classical linear output layer combines the quantum measurement values using learned weights and a bias to produce the predicted traffic volume.
+
+Conceptually, the output has the form:
+
+\[
+\hat{y} = \sum_i w_i z_i + b
+\]
+
+Here, \(z_i\) represents a quantum measurement value, \(w_i\) is a learned classical weight, and \(b\) is a bias. The result \(\hat{y}\) is the predicted traffic volume.
+
+This is why the project is called **hybrid quantum-classical machine learning**: quantum operations produce intermediate features, while classical computation helps turn those features into the final prediction.
+
+## 5. How does training make the model learn?
+
+Training and prediction are two different stages.
+
+**Training** uses historical examples for which the actual traffic volume is known. The model makes predictions, compares them with the known values, calculates prediction error, and adjusts its trainable parameters to reduce that error.
+
+Both the quantum circuit parameters and classical output-layer parameters participate in the hybrid learning process.
+
+The trained parameters are saved to `quantum_model_params.npz`.
+
+**Inference** loads those learned parameters and uses them to predict traffic volume for incoming records. The receiver does not need to train the model again for every MQTT message.
+
+The training script is `quantum_model.py`; inference is implemented in `quantum_inference.py`.
+
+## 6. How the software components fit together
+
+| Component | Responsibility |
+|---|---|
+| `quantum_model.py` | Trains and evaluates the hybrid model and saves its learned parameters |
+| `quantum_inference.py` | Loads the parameters and runs the quantum prediction path |
+| `quantum_sender.py` | Replays historical traffic records over MQTT |
+| `quantum_receiver.py` | Receives messages, invokes inference, records results, and serves the dashboard |
+| MQTT broker | Transports messages on the `traffic/data` topic |
+| `templates/quantum_index.html` | Defines the dashboard interface |
+| `quantum_results.csv` | Stores processed prediction records and timing information |
+| `quantum_model_params.npz` | Stores trained model parameters; generated locally |
+
+## 7. Prototype training results
+
+In one development run, the model was trained for five epochs using a limited subset of the available dataset.
 
 | Metric | Development result |
 |---|---:|
@@ -132,140 +192,135 @@ In the development run, the model was trained for five epochs using a limited su
 | Test MAE | 1,031.77 vehicles |
 | Test R² | 0.5173 |
 
-These figures describe one prototype run and are not a comprehensive performance evaluation. Results may vary with changes to the data, parameters, or software environment.
+These are results from a small prototype experiment, not a comprehensive benchmark. They do not establish that the quantum model outperforms a classical model.
 
-## Requirements
+The dashboard's inference timing measures the prediction path, while total processing timing includes additional receiver-side work. The first inference can take longer because of initialization.
+
+## 8. Technology stack
+
+- Python
+- PennyLane
+- Amazon Braket SDK and PennyLane plugin
+- Braket local quantum simulator
+- NumPy, pandas, and scikit-learn
+- Paho MQTT
+- Flask
+- Chart.js
+
+All quantum circuit execution in this prototype is local. No remote quantum hardware or paid cloud quantum jobs are required.
+
+## 9. Dataset
+
+The project uses the [TrafficVolumeDataCSV dataset on Kaggle](https://www.kaggle.com/datasets/bobaaayoung/trafficvolumedatacsv/data).
+
+Download the CSV and place it in the repository root as:
+
+```text
+TrafficVolumeData.csv
+```
+
+The dataset is not included in this repository. Consult the dataset's source page for its applicable terms.
+
+## 10. Setup and running the demonstration
+
+### Requirements
 
 - Python 3.10
 - An MQTT broker reachable at `127.0.0.1:1884`
-- The dataset described above
-- Internet access in the browser to load the Chart.js CDN
+- `TrafficVolumeData.csv`
+- Python dependencies from `requirements.txt`
 
-The Python dependencies are listed in `requirements.txt`.
-
-## Setup
-
-Clone the repository:
+### Clone the repository
 
 ```bash
 git clone https://github.com/aimanhaizal/quantum-traffic-mqtt.git
 cd quantum-traffic-mqtt
 ```
 
-Create and activate a virtual environment on Linux:
+### Create a virtual environment and install dependencies
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
-On Windows PowerShell, activate it with:
+On Windows PowerShell, activate the environment with:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install the dependencies:
+Download the dataset and place it in the repository root.
 
-```bash
-python -m pip install -r requirements.txt
-```
-
-Download `TrafficVolumeData.csv` from the dataset source and place it in the repository root.
-
-Ensure that an MQTT broker is running and reachable at `127.0.0.1:1884`. The sender and receiver use the `traffic/data` topic.
-
-## Run the project
-
-Run the following steps in order, using separate terminals where indicated.
-
-### 1. Train the quantum model
-
-With the virtual environment active and dataset in place:
+### Step 1: Train the model
 
 ```bash
 python quantum_model.py
 ```
 
-This trains the hybrid quantum-classical regressor, evaluates it on a small test set, and saves the learned parameters to `quantum_model_params.npz`.
+This trains and evaluates the model and creates `quantum_model_params.npz`.
 
-The generated model file is local and is not included in the repository. Run training again when setting up a fresh copy.
+Run this step when setting up a fresh copy of the project or when you want to train a new model.
 
-### 2. Start the MQTT receiver and dashboard
+### Step 2: Start the MQTT broker
 
-In a second terminal, activate the same virtual environment and run:
+If the existing Mosquitto Docker container is used:
 
 ```bash
+docker start mosquitto
+```
+
+Make sure the broker is reachable at the address and port configured by the sender and receiver.
+
+### Step 3: Start the receiver
+
+In one terminal:
+
+```bash
+cd /home/work/quantum-traffic-mqtt
+source .venv/bin/activate
 python quantum_receiver.py
 ```
 
-The receiver subscribes to `traffic/data`, performs predictions, logs results to `quantum_results.csv`, and serves the Flask dashboard.
+The receiver subscribes to `traffic/data`, performs predictions, logs results, and serves the Flask dashboard.
 
-Open the dashboard at:
+### Step 4: Start the sender
 
-[http://localhost:5119/](http://localhost:5119/)
-
-If accessing it from another machine, use the host's reachable IP address and port `5119`.
-
-### 3. Start the dataset sender
-
-In a third terminal, activate the virtual environment and run:
+In a second terminal:
 
 ```bash
+cd /home/work/quantum-traffic-mqtt
+source .venv/bin/activate
 python quantum_sender.py
 ```
 
-The sender publishes each valid row from the CSV at approximately one-second intervals. It reports publishing progress in the terminal.
+The sender publishes valid rows from the CSV at approximately one-second intervals. Press `Ctrl+C` to stop the replay.
 
-Use **Ctrl+C** to stop the replay when desired. The receiver and dashboard can be stopped separately.
+### Step 5: Open the dashboard
 
-## Dashboard and result logging
+Visit [http://localhost:5119/](http://localhost:5119/).
 
-The dashboard presents:
+When accessing the dashboard from another machine, use the host's reachable IP address and port `5119`, for example `http://10.1.32.1:5119/`.
 
-- Total messages received during the current receiver session
-- Average, median, and maximum inference time over the retained recent records
-- Actual versus predicted traffic volume
-- Inference runtime for individual messages
-- A table of the latest records
+## 11. Scope and limitations
 
-The dashboard keeps a rolling window of recent messages in memory, while `quantum_results.csv` stores processed results on disk. The CSV is append-only in the current prototype, so previous experiment records remain unless the file is manually cleared.
+- This is a prototype demonstrating quantum machine learning integration, not a production traffic forecasting service.
+- The quantum circuit runs on a local simulator, not physical quantum hardware.
+- The dataset replay uses historical observations rather than live traffic sensor data.
+- The model is trained on a small subset for demonstration purposes.
+- No comparison in this project establishes a quantum advantage over classical machine learning.
+- Simulator and inference timings depend on the computer, software environment, and execution conditions.
+- The dashboard requires browser access to the external Chart.js CDN.
 
-Inference timing measures the prediction path, while processing timing includes additional receiver-side work. The first inference may take longer than subsequent calls due to initialization.
+## 12. The main takeaway
 
-## Project files
+The quantum component is not the entire application. It is a specific stage inside the machine learning model.
 
-```text
-quantum-traffic-mqtt/
-├── quantum_model.py
-├── quantum_inference.py
-├── quantum_receiver.py
-├── quantum_sender.py
-├── sender.py
-├── quantum_circuit_test.py
-├── gradient_test.py
-├── test_inference.py
-├── requirements.txt
-├── .gitignore
-├── README.md
-├── templates/
-│   └── quantum_index.html
-└── screenshots/
-    └── quantum-dashboard.png
-```
+**Historical data → feature encoding → quantum circuit operations → quantum measurements → classical output layer → traffic-volume prediction.**
 
-The exact file list may include additional configuration or test files.
-
-## Scope and limitations
-
-This is a prototype for demonstrating the integration of quantum machine learning with an MQTT data pipeline.
-
-- Quantum circuits run on the local Braket simulator; no remote quantum hardware or cloud quantum jobs are required.
-- The model is trained on a small subset for demonstration rather than exhaustive optimization.
-- The dashboard compares predictions with known historical traffic values in the replayed dataset; it is not a live traffic sensor.
-- Inference times depend on the local machine, simulator, and execution conditions.
-- The dashboard's Chart.js graphs require browser access to the external CDN.
+The purpose of this demonstration is to make that hybrid workflow visible: a quantum circuit processes encoded input features, its measurement results become inputs to classical prediction logic, and the resulting prediction travels through an MQTT-based application to a live dashboard.
 
 ## License
 
-This repository's code is released under the **MIT License**. See [`LICENSE`](LICENSE). The Kaggle dataset is a separate work; refer to its source page for applicable terms.
+The repository's code is released under the MIT License. See [`LICENSE`](LICENSE). The dataset is a separate work and remains subject to the terms of its source.
