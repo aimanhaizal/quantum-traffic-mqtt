@@ -5,3 +5,4 @@ __pycache__
 *.pyc
 quantum_results.csv
 screenshots/
+comparison_results.csv

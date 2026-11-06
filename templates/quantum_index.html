@@ -4,9 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Quantum Traffic Monitor</title>
+    <title>Traffic Prediction | Quantum vs Classical ML</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
+        * { box-sizing: border-box; }
+
         body {
             margin: 0;
             padding: 24px;
@@ -14,103 +17,273 @@
             background: #f3f5f8;
             color: #202938;
         }
+
         main { max-width: 1200px; margin: auto; }
         h1 { margin-bottom: 6px; }
-        .subtitle { color: #657184; margin-top: 0; }
+        h2 { font-size: 19px; margin-top: 0; }
+        .subtitle { color: #657184; line-height: 1.6; }
+        .status { color: #18864b; font-size: 14px; }
+
         .cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 14px;
             margin: 22px 0;
         }
+
         .card, .panel {
             background: white;
             border-radius: 12px;
             padding: 18px;
             box-shadow: 0 2px 8px #1720330c;
         }
-        .metric { font-size: 28px; font-weight: bold; margin-top: 10px; }
-        .label { color: #657184; font-size: 14px; }
-        .charts {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 18px;
+
+        .metric {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 10px;
         }
-        .chart-container { height: 310px; }
+
+        .label { color: #657184; font-size: 14px; }
+        .note { color: #657184; font-size: 13px; line-height: 1.6; }
+        .panel { margin-bottom: 18px; }
+        .chart-container { height: 350px; }
+
         .table-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
         th, td {
-            padding: 10px;
+            padding: 11px;
             text-align: left;
             border-bottom: 1px solid #e8ebf0;
             white-space: nowrap;
         }
+
         th { color: #657184; font-size: 13px; }
-        .status { color: #18864b; font-size: 14px; }
+
+        details {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 8px #1720330c;
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .runtime-values {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .runtime-values strong {
+            display: block;
+            margin-top: 6px;
+            font-size: 20px;
+        }
+
         @media (max-width: 600px) {
             body { padding: 12px; }
-            .chart-container { height: 260px; }
+            .chart-container { height: 280px; }
         }
     </style>
 </head>
+
 <body>
 <main>
-    <h1>Quantum Traffic Monitor</h1>
+    <h1>Traffic Prediction: Quantum vs Classical ML</h1>
+
     <p class="subtitle">
-        Hybrid quantum-classical traffic prediction using the
-        Amazon Braket local simulator.
+        Comparing a hybrid quantum-classical model using
+        PennyLane and Amazon Braket's local simulator
+        against a conventional Random Forest model.
+        Both models receive the same traffic data through MQTT.
     </p>
-    <p class="status" id="status">Connecting to dashboard data...</p>
+
+    <p class="status" id="status">
+        Connecting to dashboard data...
+    </p>
 
     <section class="cards">
         <div class="card">
-            <!-- <div class="label">Messages received (recent window)</div> -->
             <div class="label">Total messages received</div>
             <div class="metric" id="count">0</div>
         </div>
-        <div class="card">
-            <div class="label">Average inference runtime</div>
-            <div class="metric" id="average">—</div>
+
+        <!-- <div class="card">
+            <div class="label">Quantum replay MAE</div>
+            <div class="metric" id="quantumMae">—</div>
         </div>
+
         <div class="card">
-            <div class="label">Median inference runtime</div>
-            <div class="metric" id="median">—</div>
+            <div class="label">Random Forest replay MAE</div>
+            <div class="metric" id="classicalMae">—</div>
+        </div> -->
+
+        <div class="card">
+            <div class="label">Quantum prediction closeness</div>
+            <div class="metric" id="quantumCloseness">—</div>
+            <div class="note" id="quantumMae">—</div>
         </div>
+
         <div class="card">
-            <div class="label">Maximum inference runtime</div>
-            <div class="metric" id="maximum">—</div>
+            <div class="label">Random Forest prediction closeness</div>
+            <div class="metric" id="classicalCloseness">—</div>
+            <div class="note" id="classicalMae">—</div>
         </div>
     </section>
 
-    <section class="charts">
-        <div class="panel">
-            <h2>Actual vs Predicted Traffic</h2>
-            <div class="chart-container">
-                <canvas id="trafficChart"></canvas>
+
+    <section class="panel">
+        <h2>How Does Traffic Prediction Work?</h2>
+
+        <p>
+            Both models predict hourly traffic volume using four
+            inputs from historical traffic and weather records:
+        </p>
+
+        <div class="cards">
+            <div>
+                <strong>Time of day</strong>
+                <p class="note">
+                    The hour, from 0 to 23. Helps identify
+                    morning and evening traffic patterns.
+                </p>
+            </div>
+
+            <div>
+                <strong>Humidity</strong>
+                <p class="note">
+                    Relative humidity in the weather data,
+                    which may relate to driving conditions.
+                </p>
+            </div>
+
+            <div>
+                <strong>Temperature</strong>
+                <p class="note">
+                    Air temperature, measured in Kelvin
+                    in the source dataset.
+                </p>
+            </div>
+
+            <div>
+                <strong>Cloud coverage</strong>
+                <p class="note">
+                    Percentage of the sky covered by clouds,
+                    from 0% to 100%.
+                </p>
             </div>
         </div>
-        <div class="panel">
-            <h2>Quantum Inference Runtime per Message</h2>
-            <div class="chart-container">
-                <canvas id="runtimeChart"></canvas>
-            </div>
+
+        <p class="note">
+            <strong>Quantum model:</strong>
+            Encodes these four inputs into a four-qubit circuit
+            using PennyLane and the Amazon Braket local simulator.
+            Circuit measurements are combined to predict traffic.
+        </p>
+
+        <p class="note">
+            <strong>Random Forest:</strong>
+            Uses the same inputs with conventional decision trees
+            to generate a traffic prediction.
+        </p>
+    </section>
+
+
+    <section class="panel">
+        <h2>Actual vs Predicted Traffic</h2>
+        <p class="note">
+            Lower prediction error means the model is closer
+            to the actual recorded traffic volume.
+        </p>
+
+        <div class="chart-container">
+            <canvas id="trafficChart"></canvas>
         </div>
     </section>
 
-    <section class="panel" style="margin-top:18px">
-        <h2>Latest Messages</h2>
+    <section class="panel">
+        <h2>How Are the Models Performing?</h2>
+
+        <p id="comparisonText">
+            Waiting for traffic data...
+        </p>
+
+        <!-- <p class="note">
+            MAE (Mean Absolute Error) is the average difference
+            between predicted and actual traffic volume.
+            Lower is better. These running replay scores include
+            historical records that may have been used for training,
+            so they are illustrative rather than held-out test scores.
+        </p> -->
+
+        <p class="note">
+            Prediction closeness compares the total prediction error
+            with the total actual traffic volume. Higher is better;
+            100% means perfect predictions. Values can be negative
+            when prediction errors are exceptionally large.
+        </p>
+
+        <p class="note">
+            MAE is the average prediction error measured in vehicles.
+            Lower is better. Both metrics are calculated from the
+            running historical replay, which can include training
+            records, rather than an independent held-out test.
+        </p>
+    </section>
+
+    <details>
+        <summary>Technical Details: Inference Performance</summary>
+
+        <p class="note">
+            Inference time is how long each model takes to
+            generate a prediction. These averages cover the
+            latest 50 processed messages.
+        </p>
+
+        <div class="runtime-values">
+            <div>
+                <div class="label">Quantum average</div>
+                <strong id="quantumRuntime">—</strong>
+            </div>
+
+            <div>
+                <div class="label">Random Forest average</div>
+                <strong id="classicalRuntime">—</strong>
+            </div>
+        </div>
+    </details>
+
+    <section class="panel">
+        <h2>Latest Traffic Predictions</h2>
+
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
                         <th>Timestamp</th>
                         <th>Actual</th>
-                        <th>Predicted</th>
-                        <th>Inference (ms)</th>
+                        <th>Quantum</th>
+                        <th>Random Forest</th>
                     </tr>
                 </thead>
+
                 <tbody id="messageRows">
-                    <tr><td colspan="4">Waiting for MQTT messages...</td></tr>
+                    <tr>
+                        <td colspan="4">
+                            Waiting for MQTT messages...
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -133,9 +306,16 @@
                         pointRadius: 2
                     },
                     {
-                        label: "Predicted traffic",
+                        label: "Quantum prediction",
                         data: [],
-                        borderColor: "#dc7c24",
+                        borderColor: "#9333ea",
+                        tension: 0.2,
+                        pointRadius: 2
+                    },
+                    {
+                        label: "Random Forest prediction",
+                        data: [],
+                        borderColor: "#16a34a",
                         tension: 0.2,
                         pointRadius: 2
                     }
@@ -145,110 +325,186 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: false,
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
                 scales: {
-                    y: { beginAtZero: true, title: {
-                        display: true, text: "Vehicles"
-                    }}
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: "Traffic volume (vehicles)"
+                        }
+                    }
                 }
             }
         }
     );
 
-    const runtimeChart = new Chart(
-        document.getElementById("runtimeChart"),
-        {
-            type: "line",
-            data: {
-                labels: [],
-                datasets: [{
-                    label: "Inference runtime (ms)",
-                    data: [],
-                    borderColor: "#7c3aed",
-                    backgroundColor: "#7c3aed22",
-                    fill: true,
-                    tension: 0.15,
-                    pointRadius: 3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                scales: {
-                    y: { beginAtZero: true, title: {
-                        display: true, text: "Milliseconds"
-                    }}
-                }
-            }
-        }
-    );
+    function formatNumber(value) {
+        return value == null
+            ? "—"
+            : Math.round(value).toLocaleString();
+    }
 
     async function refreshDashboard() {
         try {
-            const response = await fetch("/api/data", { cache: "no-store" });
-            if (!response.ok) throw new Error("HTTP " + response.status);
+            const response = await fetch("/api/data", {
+                cache: "no-store"
+            });
+
+            if (!response.ok) {
+                throw new Error("HTTP " + response.status);
+            }
 
             const data = await response.json();
             const rows = data.records;
+
             const labels = rows.map((r, i) => {
-                const date = new Date(r.date_time.replace(" ", "T"));
+                const date = new Date(
+                    r.date_time.replace(" ", "T")
+                );
+
                 return Number.isNaN(date.getTime())
                     ? String(i + 1)
                     : date.toLocaleString();
             });
 
-            document.getElementById("count").textContent = data.count;
-            document.getElementById("average").textContent =
-                data.count ? data.average_runtime_ms + " ms" : "—";
-            document.getElementById("median").textContent =
-                data.count ? data.median_runtime_ms + " ms" : "—";
-            document.getElementById("maximum").textContent =
-                data.count ? data.max_runtime_ms + " ms" : "—";
+            // Headline metrics
+            document.getElementById("count").textContent =
+                data.count.toLocaleString();
+            // #########
+            // document.getElementById("quantumMae").textContent =
+            //     formatNumber(data.quantum_mae);
 
+            // document.getElementById("classicalMae").textContent =
+            //     formatNumber(data.classical_mae);
+
+            // #######
+
+            document.getElementById("quantumCloseness").textContent =
+                data.quantum_closeness_pct == null
+                    ? "—"
+                    : data.quantum_closeness_pct.toFixed(1) + "%";
+
+            document.getElementById("classicalCloseness").textContent =
+                data.classical_closeness_pct == null
+                    ? "—"
+                    : data.classical_closeness_pct.toFixed(1) + "%";
+
+            document.getElementById("quantumMae").textContent =
+                "Average error: " + formatNumber(data.quantum_mae) + " vehicles";
+
+            document.getElementById("classicalMae").textContent =
+                "Average error: " + formatNumber(data.classical_mae) + " vehicles";
+
+            // Traffic comparison graph
             trafficChart.data.labels = labels;
+
             trafficChart.data.datasets[0].data =
                 rows.map(r => r.actual);
+
             trafficChart.data.datasets[1].data =
-                rows.map(r => r.predicted);
+                rows.map(r => r.quantum_predicted);
+
+            trafficChart.data.datasets[2].data =
+                rows.map(r => r.classical_predicted);
+
             trafficChart.update();
 
-            runtimeChart.data.labels = labels;
-            runtimeChart.data.datasets[0].data =
-                rows.map(r => r.inference_ms);
-            runtimeChart.update();
+            // Simplified model comparison
+            const comparison = document.getElementById(
+                "comparisonText"
+            );
 
-            const tbody = document.getElementById("messageRows");
+            if (
+                data.quantum_mae != null &&
+                data.classical_mae != null
+            ) {
+                const difference = Math.abs(
+                    data.quantum_mae - data.classical_mae
+                );
+
+                if (data.quantum_mae < data.classical_mae) {
+                    comparison.textContent =
+                        "Quantum ML currently has the lower " +
+                        "replay error by " +
+                        formatNumber(difference) +
+                        " vehicles on average.";
+                } else if (
+                    data.classical_mae < data.quantum_mae
+                ) {
+                    comparison.textContent =
+                        "Random Forest currently has the lower " +
+                        "replay error by " +
+                        formatNumber(difference) +
+                        " vehicles on average.";
+                } else {
+                    comparison.textContent =
+                        "Both models currently have the same " +
+                        "average replay error.";
+                }
+            } else {
+                comparison.textContent =
+                    "Waiting for traffic data...";
+            }
+
+            // Optional technical details
+            document.getElementById(
+                "quantumRuntime"
+            ).textContent = data.count
+                ? data.quantum_average_runtime_ms + " ms"
+                : "—";
+
+            document.getElementById(
+                "classicalRuntime"
+            ).textContent = data.count
+                ? data.classical_average_runtime_ms + " ms"
+                : "—";
+
+            // Latest 10 messages
+            const tbody = document.getElementById(
+                "messageRows"
+            );
+
             tbody.replaceChildren();
 
             rows.slice().reverse().slice(0, 10).forEach(r => {
                 const tr = document.createElement("tr");
+
                 [
                     r.date_time,
-                    r.actual == null ? "—" : Math.round(r.actual),
-                    Math.round(r.predicted),
-                    r.inference_ms.toFixed(2)
+                    formatNumber(r.actual),
+                    formatNumber(r.quantum_predicted),
+                    formatNumber(r.classical_predicted)
                 ].forEach(value => {
                     const td = document.createElement("td");
                     td.textContent = value;
                     tr.appendChild(td);
                 });
+
                 tbody.appendChild(tr);
             });
 
             if (rows.length === 0) {
                 const tr = document.createElement("tr");
                 const td = document.createElement("td");
+
                 td.colSpan = 4;
                 td.textContent = "Waiting for MQTT messages...";
+
                 tr.appendChild(td);
                 tbody.appendChild(tr);
             }
 
             document.getElementById("status").textContent =
                 "Dashboard connected • Refreshing every second";
+
         } catch (error) {
             document.getElementById("status").textContent =
-                "Unable to load dashboard data: " + error.message;
+                "Unable to load dashboard data: " +
+                error.message;
         }
     }
 

@@ -6,3 +6,6 @@ __pycache__/
 TrafficVolumeData.csv
 quantum_results.csv
 quantum_model_params.npz
+
+classical_model.pkl
+comparison_results.csv

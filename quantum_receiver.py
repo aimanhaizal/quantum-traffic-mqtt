@@ -9,7 +9,9 @@ from datetime import datetime
 import paho.mqtt.client as mqtt
 from flask import Flask, jsonify, render_template
 
-from quantum_inference import predict_traffic
+# from quantum_inference import predict_traffic
+from quantum_inference import predict_traffic as quantum_predict
+from classical_inference import predict_traffic as classical_predict
 
 
 # --------------------------------------------------
@@ -33,14 +35,29 @@ records = []
 records_lock = threading.Lock()
 total_messages_received = 0
 mqtt_ready = threading.Event()
+quantum_absolute_error_total = 0.0
+classical_absolute_error_total = 0.0
+evaluated_messages = 0
+total_actual_volume = 0.0
 
-RESULTS_FILE = "quantum_results.csv"
+# RESULTS_FILE = "quantum_results.csv"
+
+# CSV_FIELDS = [
+#     "date_time",
+#     "actual",
+#     "predicted",
+#     "inference_ms",
+#     "processing_ms",
+# ]
+RESULTS_FILE = "comparison_results.csv"
 
 CSV_FIELDS = [
     "date_time",
     "actual",
-    "predicted",
-    "inference_ms",
+    "quantum_predicted",
+    "classical_predicted",
+    "quantum_inference_ms",
+    "classical_inference_ms",
     "processing_ms",
 ]
 
@@ -94,8 +111,70 @@ def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
 
 
 
+# def on_message(client, userdata, msg):
+#     global total_messages_received
+#     received_at = time.perf_counter()
+
+#     try:
+#         data = json.loads(msg.payload.decode("utf-8"))
+
+#         date_time = data.get("date_time", "Unknown")
+#         hour = data.get("hour")
+
+#         if hour is None:
+#             hour = datetime.fromisoformat(date_time).hour
+
+#         prediction, inference_ms = predict_traffic(
+#             hour=float(hour),
+#             humidity=float(data["humidity"]),
+#             temperature=float(data["temperature"]),
+#             clouds_all=float(data["clouds_all"]),
+#         )
+
+#         processing_ms = (time.perf_counter() - received_at) * 1000
+#         actual = data.get("traffic_volume")
+
+#         record = {
+#             "date_time": date_time,
+#             "actual": float(actual) if actual is not None else None,
+#             "predicted": round(float(prediction), 2),
+#             "inference_ms": round(float(inference_ms), 2),
+#             "processing_ms": round(float(processing_ms), 2),
+#         }
+
+#         # Persist each processed prediction for later review.
+#         with open(RESULTS_FILE, "a", newline="") as f:
+#             writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+#             writer.writerow(record)
+
+#         # with records_lock:
+#         #     records.append(record)
+#         #     if len(records) > MAX_RECORDS:
+#         #         records.pop(0)
+
+#         with records_lock:
+#             records.append(record)
+#             total_messages_received += 1
+
+#             if len(records) > MAX_RECORDS:
+#                 records.pop(0)
+
+#         print(
+#             f"{date_time} | predicted={prediction:.0f} | "
+#             f"inference={inference_ms:.2f} ms"
+#         )
+
+#     except Exception as exc:
+#         print(f"Could not process MQTT message: {exc}")
+
+
 def on_message(client, userdata, msg):
     global total_messages_received
+    global quantum_absolute_error_total
+    global classical_absolute_error_total
+    global evaluated_messages
+    global total_actual_volume
+
     received_at = time.perf_counter()
 
     try:
@@ -107,48 +186,63 @@ def on_message(client, userdata, msg):
         if hour is None:
             hour = datetime.fromisoformat(date_time).hour
 
-        prediction, inference_ms = predict_traffic(
-            hour=float(hour),
-            humidity=float(data["humidity"]),
-            temperature=float(data["temperature"]),
-            clouds_all=float(data["clouds_all"]),
-        )
+        features = {
+            "hour": float(hour),
+            "humidity": float(data["humidity"]),
+            "temperature": float(data["temperature"]),
+            "clouds_all": float(data["clouds_all"]),
+        }
+
+        quantum_prediction, quantum_ms = quantum_predict(**features)
+        classical_prediction, classical_ms = classical_predict(**features)
+
+        actual_value = data.get("traffic_volume")
+        actual = float(actual_value) if actual_value is not None else None
 
         processing_ms = (time.perf_counter() - received_at) * 1000
-        actual = data.get("traffic_volume")
 
         record = {
             "date_time": date_time,
-            "actual": float(actual) if actual is not None else None,
-            "predicted": round(float(prediction), 2),
-            "inference_ms": round(float(inference_ms), 2),
+            "actual": actual,
+            "quantum_predicted": round(float(quantum_prediction), 2),
+            "classical_predicted": round(float(classical_prediction), 2),
+            "quantum_inference_ms": round(float(quantum_ms), 2),
+            "classical_inference_ms": round(float(classical_ms), 2),
             "processing_ms": round(float(processing_ms), 2),
         }
 
-        # Persist each processed prediction for later review.
         with open(RESULTS_FILE, "a", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
             writer.writerow(record)
-
-        # with records_lock:
-        #     records.append(record)
-        #     if len(records) > MAX_RECORDS:
-        #         records.pop(0)
 
         with records_lock:
             records.append(record)
             total_messages_received += 1
 
+            if actual is not None:
+                quantum_absolute_error_total += abs(
+                    actual - quantum_prediction
+                )
+                classical_absolute_error_total += abs(
+                    actual - classical_prediction
+                )
+                evaluated_messages += 1
+                total_actual_volume += actual
+
             if len(records) > MAX_RECORDS:
                 records.pop(0)
 
         print(
-            f"{date_time} | predicted={prediction:.0f} | "
-            f"inference={inference_ms:.2f} ms"
+            f"{date_time} | actual={actual} | "
+            f"quantum={quantum_prediction:.0f} | "
+            f"classical={classical_prediction:.0f} | "
+            f"Q={quantum_ms:.2f} ms | "
+            f"RF={classical_ms:.2f} ms"
         )
 
     except Exception as exc:
         print(f"Could not process MQTT message: {exc}")
+
 
 
 # --------------------------------------------------
@@ -169,40 +263,78 @@ def index():
     return render_template("quantum_index.html")
 
 
+# @app.route("/api/data")
+# def get_data():
+#     with records_lock:
+#         snapshot = list(records)
+#         total_received = total_messages_received
+
+#     runtimes = [r["inference_ms"] for r in snapshot]
+
+#     if runtimes:
+#         sorted_runtimes = sorted(runtimes)
+#         middle = len(sorted_runtimes) // 2
+
+#         if len(sorted_runtimes) % 2:
+#             median_runtime = sorted_runtimes[middle]
+#         else:
+#             median_runtime = (
+#                 sorted_runtimes[middle - 1] + sorted_runtimes[middle]
+#             ) / 2
+
+#         average_runtime = sum(runtimes) / len(runtimes)
+#         max_runtime = max(runtimes)
+#     else:
+#         average_runtime = 0
+#         median_runtime = 0
+#         max_runtime = 0
+
+#     return jsonify({
+#         "records": snapshot,
+#         # "count": len(snapshot),
+#         "count": total_received,
+#         "window_count": len(snapshot),
+#         "average_runtime_ms": round(average_runtime, 2),
+#         "median_runtime_ms": round(median_runtime, 2),
+#         "max_runtime_ms": round(max_runtime, 2),
+#     })
+
+
 @app.route("/api/data")
 def get_data():
     with records_lock:
         snapshot = list(records)
         total_received = total_messages_received
+        evaluated = evaluated_messages
+        quantum_error = quantum_absolute_error_total
+        classical_error = classical_absolute_error_total
+        actual_volume = total_actual_volume
 
-    runtimes = [r["inference_ms"] for r in snapshot]
+    quantum_runtimes = [r["quantum_inference_ms"] for r in snapshot]
+    classical_runtimes = [r["classical_inference_ms"] for r in snapshot]
 
-    if runtimes:
-        sorted_runtimes = sorted(runtimes)
-        middle = len(sorted_runtimes) // 2
-
-        if len(sorted_runtimes) % 2:
-            median_runtime = sorted_runtimes[middle]
-        else:
-            median_runtime = (
-                sorted_runtimes[middle - 1] + sorted_runtimes[middle]
-            ) / 2
-
-        average_runtime = sum(runtimes) / len(runtimes)
-        max_runtime = max(runtimes)
-    else:
-        average_runtime = 0
-        median_runtime = 0
-        max_runtime = 0
+    def average(values):
+        return round(sum(values) / len(values), 2) if values else 0.0
 
     return jsonify({
         "records": snapshot,
-        # "count": len(snapshot),
         "count": total_received,
         "window_count": len(snapshot),
-        "average_runtime_ms": round(average_runtime, 2),
-        "median_runtime_ms": round(median_runtime, 2),
-        "max_runtime_ms": round(max_runtime, 2),
+        "evaluated_count": evaluated,
+        "quantum_mae": round(quantum_error / evaluated, 2)
+            if evaluated else None,
+        "classical_mae": round(classical_error / evaluated, 2)
+            if evaluated else None,
+        "quantum_average_runtime_ms": average(quantum_runtimes),
+        "classical_average_runtime_ms": average(classical_runtimes),
+
+        "quantum_closeness_pct": round(
+            100 * (1 - quantum_error / actual_volume), 1
+        ) if actual_volume > 0 else None,
+
+        "classical_closeness_pct": round(
+            100 * (1 - classical_error / actual_volume), 1
+        ) if actual_volume > 0 else None,
     })
 
 
