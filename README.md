@@ -31,40 +31,36 @@ docker compose down
 
 **New clone or missing model files?** Complete [First-time setup](#first-time-setup-new-clone) below **before** running `docker compose up -d --build`. The three local files are not committed to Git. The initial quantum training may be computationally slow because it repeatedly simulates quantum circuits; it is **not** part of normal demo startup. Docker Compose does not automatically retrain the models.
 
-### Demonstration host
+# Access the dashboard
 
-The prototype is deployed on the development workstation **WorkStationAiman**, within the organization's internal network.
+```bash
+ssh mimos@10.1.32.1
+```
 
-| Setting | Value |
-|---|---|
-| Host | `WorkStationAiman` |
-| Internal IP | `10.1.32.1` |
-| SSH user | `mimos` |
-| Project directory | `/home/work/quantum-traffic-mqtt` |
-| Dashboard port | `5119` |
+The demonstration is hosted on `WorkStationAiman` (`10.1.32.1`).
 
-**Start the demonstration on the workstation:**
+When connected to the organization's internal network, open:
+
+**http://10.1.32.1:5119/**
+
+The Docker Compose configuration binds the dashboard to the workstation's internal IP address. No SSH port forwarding is required for clients that can reach this address and port.
+
+The workstation must be running, the Docker containers must be started, and network/firewall rules must permit access to TCP port `5119`.
+
+To start the demonstration:
 
 ```bash
 cd /home/work/quantum-traffic-mqtt
 docker compose up -d --build
 ```
 
-**Access the dashboard from the workstation:**
-
-`http://127.0.0.1:5119/`
-
-For remote access, connect to the workstation through SSH and forward the dashboard port:
+To stop it:
 
 ```bash
-ssh -L 5119:127.0.0.1:5119 WorkStationAiman
+docker compose down
 ```
 
-Then open `http://127.0.0.1:5119/` on your local computer.
-
-The dashboard is bound to the workstation's loopback interface and is not directly exposed on the internal network. SSH port forwarding is required for access from another machine.
-
-The SSH alias `WorkStationAiman` must be configured in the user's local SSH configuration. The host is accessible only when the workstation is running and reachable through the organization's network.
+For remote development, SSH access remains available through the configured `WorkStationAiman` host alias.
 
 ## Where quantum computing happens — color-coded architecture
 

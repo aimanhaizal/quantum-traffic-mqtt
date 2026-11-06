@@ -26,8 +26,10 @@ services:
     environment:
       MQTT_HOST: mosquitto
       MQTT_PORT: "1883"
+    # ports:
+    #   - "127.0.0.1:5119:5119"
     ports:
-      - "127.0.0.1:5119:5119"
+      - "10.1.32.1:5119:5119"
     healthcheck:
       test:
         - CMD
