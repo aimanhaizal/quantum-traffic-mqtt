@@ -1,0 +1,7 @@
+
+.git
+.venv
+__pycache__
+*.pyc
+quantum_results.csv
+screenshots/

@@ -16,8 +16,10 @@ from quantum_inference import predict_traffic
 # Configuration
 # --------------------------------------------------
 
-BROKER_HOST = "127.0.0.1"
-BROKER_PORT = 1884
+# BROKER_HOST = "127.0.0.1"
+# BROKER_PORT = 1884
+BROKER_HOST = os.getenv("MQTT_HOST", "127.0.0.1")
+BROKER_PORT = int(os.getenv("MQTT_PORT", "1884"))
 TOPIC = "traffic/data"
 WEB_HOST = "0.0.0.0"
 WEB_PORT = 5119
@@ -30,6 +32,7 @@ app = Flask(__name__)
 records = []
 records_lock = threading.Lock()
 total_messages_received = 0
+mqtt_ready = threading.Event()
 
 RESULTS_FILE = "quantum_results.csv"
 
@@ -51,13 +54,44 @@ if not os.path.exists(RESULTS_FILE):
 # MQTT callbacks
 # --------------------------------------------------
 
+# def on_connect(client, userdata, flags, reason_code, properties):
+#     if reason_code == 0:
+#         print(f"Connected to MQTT broker at {BROKER_HOST}:{BROKER_PORT}")
+#         client.subscribe(TOPIC)
+#         print(f"Subscribed to {TOPIC}")
+#     else:
+#         print(f"MQTT connection failed: {reason_code}")
+
+
 def on_connect(client, userdata, flags, reason_code, properties):
+    mqtt_ready.clear()
+
     if reason_code == 0:
         print(f"Connected to MQTT broker at {BROKER_HOST}:{BROKER_PORT}")
-        client.subscribe(TOPIC)
-        print(f"Subscribed to {TOPIC}")
+
+        result, mid = client.subscribe(TOPIC, qos=1)
+
+        if result != mqtt.MQTT_ERR_SUCCESS:
+            print(f"MQTT subscription request failed: {result}")
     else:
         print(f"MQTT connection failed: {reason_code}")
+
+
+def on_subscribe(client, userdata, mid, reason_code_list, properties):
+    if reason_code_list and all(
+        not reason.is_failure for reason in reason_code_list
+    ):
+        mqtt_ready.set()
+        print(f"Subscription confirmed for {TOPIC}")
+    else:
+        mqtt_ready.clear()
+        print(f"Subscription rejected for {TOPIC}")
+
+
+def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
+    mqtt_ready.clear()
+    print(f"Disconnected from MQTT broker: {reason_code}")
+
 
 
 def on_message(client, userdata, msg):
@@ -100,7 +134,7 @@ def on_message(client, userdata, msg):
         #     records.append(record)
         #     if len(records) > MAX_RECORDS:
         #         records.pop(0)
-        
+
         with records_lock:
             records.append(record)
             total_messages_received += 1
@@ -120,6 +154,15 @@ def on_message(client, userdata, msg):
 # --------------------------------------------------
 # Web dashboard
 # --------------------------------------------------
+
+
+@app.route("/ready")
+def ready():
+    if mqtt_ready.is_set():
+        return jsonify({"status": "ready"}), 200
+
+    return jsonify({"status": "waiting_for_mqtt"}), 503
+
 
 @app.route("/")
 def index():
@@ -171,7 +214,11 @@ if __name__ == "__main__":
     client = mqtt.Client(
         callback_api_version=mqtt.CallbackAPIVersion.VERSION2
     )
+    # client.on_connect = on_connect
+    # client.on_message = on_message
     client.on_connect = on_connect
+    client.on_subscribe = on_subscribe
+    client.on_disconnect = on_disconnect
     client.on_message = on_message
 
     print("Starting quantum MQTT receiver...")
