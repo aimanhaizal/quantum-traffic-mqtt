@@ -31,6 +31,41 @@ docker compose down
 
 **New clone or missing model files?** Complete [First-time setup](#first-time-setup-new-clone) below **before** running `docker compose up -d --build`. The three local files are not committed to Git. The initial quantum training may be computationally slow because it repeatedly simulates quantum circuits; it is **not** part of normal demo startup. Docker Compose does not automatically retrain the models.
 
+### Demonstration host
+
+The prototype is deployed on the development workstation **WorkStationAiman**, within the organization's internal network.
+
+| Setting | Value |
+|---|---|
+| Host | `WorkStationAiman` |
+| Internal IP | `10.1.32.1` |
+| SSH user | `mimos` |
+| Project directory | `/home/work/quantum-traffic-mqtt` |
+| Dashboard port | `5119` |
+
+**Start the demonstration on the workstation:**
+
+```bash
+cd /home/work/quantum-traffic-mqtt
+docker compose up -d --build
+```
+
+**Access the dashboard from the workstation:**
+
+`http://127.0.0.1:5119/`
+
+For remote access, connect to the workstation through SSH and forward the dashboard port:
+
+```bash
+ssh -L 5119:127.0.0.1:5119 WorkStationAiman
+```
+
+Then open `http://127.0.0.1:5119/` on your local computer.
+
+The dashboard is bound to the workstation's loopback interface and is not directly exposed on the internal network. SSH port forwarding is required for access from another machine.
+
+The SSH alias `WorkStationAiman` must be configured in the user's local SSH configuration. The host is accessible only when the workstation is running and reachable through the organization's network.
+
 ## Where quantum computing happens — color-coded architecture
 
 **Purple = quantum circuit execution** · **Green = classical ML/computation** · **Grey = data transport and preparation** · **Blue = results/dashboard**.
